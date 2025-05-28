@@ -21,6 +21,9 @@ import android.graphics.Bitmap
 import android.util.Log
 import com.google.ai.edge.gallery.data.Accelerator
 import com.google.ai.edge.gallery.data.ConfigKey
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import com.google.ai.edge.gallery.data.Model
 import com.google.ai.edge.gallery.ui.common.cleanUpMediapipeTaskErrorMessage
 import com.google.mediapipe.framework.image.BitmapImageBuilder
@@ -36,15 +39,34 @@ private const val TAG = "AGLlmChatModelHelper"
 typealias ResultListener = (partialResult: String, done: Boolean) -> Unit
 typealias CleanUpListener = () -> Unit
 
+sealed class ModelState {
+  object NOT_INITIALIZED : ModelState()
+  object INITIALIZING : ModelState()
+  object INITIALIZED : ModelState()
+  data class ERROR(val errorMessage: String?) : ModelState()
+}
+
 data class LlmModelInstance(val engine: LlmInference, var session: LlmInferenceSession)
 
 object LlmChatModelHelper {
   // Indexed by model name.
   private val cleanUpListeners: MutableMap<String, CleanUpListener> = mutableMapOf()
+  private val modelStates = mutableMapOf<String, MutableStateFlow<ModelState>>()
+
+  fun getModelStateFlow(modelName: String): StateFlow<ModelState> {
+    return modelStates.getOrPut(modelName) {
+      MutableStateFlow(ModelState.NOT_INITIALIZED)
+    }.asStateFlow()
+  }
 
   fun initialize(
-    context: Context, model: Model, onDone: (String) -> Unit
+    context: Context, model: Model
   ) {
+    val modelStateFlow = modelStates.getOrPut(model.name) {
+      MutableStateFlow(ModelState.NOT_INITIALIZED)
+    }
+    modelStateFlow.value = ModelState.INITIALIZING
+
     // Prepare options.
     val maxTokens =
       model.getIntConfigValue(key = ConfigKey.MAX_TOKENS, defaultValue = DEFAULT_MAX_TOKEN)
@@ -77,11 +99,12 @@ object LlmChatModelHelper {
           ).build()
       )
       model.instance = LlmModelInstance(engine = llmInference, session = session)
+      modelStateFlow.value = ModelState.INITIALIZED
     } catch (e: Exception) {
-      onDone(cleanUpMediapipeTaskErrorMessage(e.message ?: "Unknown error"))
+      model.instance = null
+      modelStateFlow.value = ModelState.ERROR(cleanUpMediapipeTaskErrorMessage(e.message ?: "Unknown error"))
       return
     }
-    onDone("")
   }
 
   fun resetSession(model: Model) {
@@ -129,6 +152,7 @@ object LlmChatModelHelper {
       onCleanUp()
     }
     model.instance = null
+    modelStates[model.name]?.value = ModelState.NOT_INITIALIZED
     Log.d(TAG, "Clean up done.")
   }
 
