@@ -65,6 +65,10 @@ android {
 
 dependencies {
   implementation(libs.androidx.core.ktx)
+<<<<<<< HEAD
+  implementation("androidx.core:core-ktx:1.10.1")
+=======
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.activity.compose)
   implementation(platform(libs.androidx.compose.bom))

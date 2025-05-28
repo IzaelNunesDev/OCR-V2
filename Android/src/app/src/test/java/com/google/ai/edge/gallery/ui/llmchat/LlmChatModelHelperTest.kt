@@ -104,7 +104,11 @@ class LlmChatModelHelperTest {
                     stateFlow.collect { states.add(it) }
                 }
 
+<<<<<<< HEAD
+                LlmChatModelHelper.initialize(mockContext, mockModel, onDone)
+=======
                 LlmChatModelHelper.initialize(mockContext, mockModel)
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
 
                 // Check for expected states
                 assertTrue(states.contains(ModelState.INITIALIZING))
@@ -132,7 +136,11 @@ class LlmChatModelHelperTest {
                 stateFlow.collect { states.add(it) }
             }
 
+<<<<<<< HEAD
+            LlmChatModelHelper.initialize(mockContext, mockModel, onDone)
+=======
             LlmChatModelHelper.initialize(mockContext, mockModel)
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
             
             assertTrue(states.contains(ModelState.INITIALIZING))
             val errorState = states.find { it is ModelState.ERROR }
@@ -161,7 +169,11 @@ class LlmChatModelHelperTest {
                     stateFlow.collect { states.add(it) }
                 }
     
+<<<<<<< HEAD
+                LlmChatModelHelper.initialize(mockContext, mockModel, onDone)
+=======
                 LlmChatModelHelper.initialize(mockContext, mockModel)
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
     
                 assertTrue(states.contains(ModelState.INITIALIZING))
                 val errorState = states.find { it is ModelState.ERROR }
@@ -185,7 +197,11 @@ class LlmChatModelHelperTest {
                 
                 val modelName = "cleanupModel"
                 whenever(mockModel.name).doReturn(modelName)
+<<<<<<< HEAD
+                LlmChatModelHelper.initialize(mockContext, mockModel, onDone) // This should set instance
+=======
                 LlmChatModelHelper.initialize(mockContext, mockModel) // This should set instance
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
                 assertNotNull(mockModel.instance) // Pre-condition
                 assertEquals(ModelState.INITIALIZED, LlmChatModelHelper.getModelStateFlow(modelName).value) // Pre-condition
         

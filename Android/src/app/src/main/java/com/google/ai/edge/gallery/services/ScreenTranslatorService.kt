@@ -1,22 +1,33 @@
 package com.google.ai.edge.gallery.services
 
+<<<<<<< HEAD
+=======
 import android.app.NotificationChannel
 import android.app.NotificationManager
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+<<<<<<< HEAD
+import android.os.Build as AndroidBuild
+import android.app.Activity
+=======
 import android.os.Build
 import android.app.Activity
 // Duplicate Context import removed
 // Duplicate Intent import removed
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
 import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.ImageReader
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
+<<<<<<< HEAD
+=======
 // Duplicate Build import removed
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
 import android.os.IBinder
 import android.os.Looper
 import android.util.DisplayMetrics
@@ -26,21 +37,29 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ContextThemeWrapper
+<<<<<<< HEAD
+=======
 // WindowManager is already imported
 // PixelFormat is already imported
 // Intent is already imported
 // R file import will be com.google.ai.edge.gallery.R
 import com.google.android.material.floatingactionbutton.FloatingActionButton // Using FAB
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancel
+<<<<<<< HEAD
+import android.view.WindowManager
+import java.util.concurrent.atomic.AtomicBoolean
+=======
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeoutOrNull
 import android.view.WindowManager
 import java.util.concurrent.atomic.AtomicBoolean
 // import android.view.WindowInsets // Not strictly needed for raw screen size
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
 import androidx.core.app.NotificationCompat
 import com.google.ai.edge.gallery.MainActivity
 import com.google.ai.edge.gallery.R
@@ -48,6 +67,13 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.google.mlkit.vision.text.Text // Added for Text.TextBlock parameter
+<<<<<<< HEAD
+import android.graphics.Bitmap
+import com.google.ai.edge.gallery.data.Model
+import com.google.ai.edge.gallery.ui.llmchat.LlmChatModelHelper // Ensure this is present
+import com.google.ai.edge.gallery.ui.llmchat.ModelState // Import for explicit type usage
+import com.google.ai.edge.gallery.utils.OverlayManager
+=======
 // Keep existing android.media.Image import (implicitly available)
 import android.graphics.Bitmap
 import com.google.ai.edge.gallery.data.Model
@@ -56,10 +82,27 @@ import com.google.ai.edge.gallery.ui.llmchat.LlmChatModelHelper // Ensure this i
 import com.google.ai.edge.gallery.ui.llmchat.ModelState // Import for explicit type usage
 import com.google.ai.edge.gallery.utils.OverlayManager
 import android.graphics.Rect // Added for OverlayManager
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
 import android.os.Handler
 import com.google.ai.edge.gallery.data.PREF_TARGET_LANGUAGE
 import com.google.ai.edge.gallery.data.DEFAULT_TARGET_LANGUAGE
 import android.content.SharedPreferences
+<<<<<<< HEAD
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import com.google.ai.edge.gallery.helpers.NotificationHelper
+import com.google.ai.edge.gallery.helpers.MediaProjectionHelper
+import com.google.ai.edge.gallery.helpers.ImageProcessingHelper
+import com.google.ai.edge.gallery.helpers.OverlayHelper
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.Notification
+import android.graphics.Rect
+import android.os.Build
+import androidx.core.content.getSystemService
+
+// Refatorar ScreenTranslatorService para usar as classes auxiliares
+=======
 // android.os.Looper is already imported earlier
 // kotlinx.coroutines.CoroutineScope (already imported)
 // kotlinx.coroutines.Dispatchers (already imported)
@@ -67,13 +110,24 @@ import android.content.SharedPreferences
 // kotlinx.coroutines.launch (already imported)
 // kotlinx.coroutines.cancel (already imported)
 
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
 class ScreenTranslatorService : Service() {
 
     // Floating Action Button variables
     private var windowManager: WindowManager? = null
     private var floatingButtonView: View? = null
     private var floatingButtonParams: WindowManager.LayoutParams? = null
+<<<<<<< HEAD
+
+    private lateinit var notificationHelper: NotificationHelper
+    private lateinit var mediaProjectionHelper: MediaProjectionHelper
+    private lateinit var imageProcessingHelper: ImageProcessingHelper
+    private lateinit var overlayHelper: OverlayHelper
+
+    private lateinit var notificationManager: NotificationManager
+=======
     // private val ACTION_CAPTURE_AND_TRANSLATE = "ACTION_CAPTURE_AND_TRANSLATE" // Will be added in companion object
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
 
     override fun onBind(intent: Intent?): IBinder? {
         return null // We don't provide binding, so return null
@@ -90,7 +144,10 @@ class ScreenTranslatorService : Service() {
 
     private var llmChatModelHelper: LlmChatModelHelper? = null // Retaining this as it might be used elsewhere, though not for init directly
     private var selectedGemmaModel: Model? = null
+<<<<<<< HEAD
+=======
     // @Volatile private var isGemmaModelInitialized = false // Removed
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
     private var overlayManager: OverlayManager? = null
     private lateinit var imageReaderHandler: Handler
     private val isProcessingFrame = AtomicBoolean(false)
@@ -105,8 +162,11 @@ class ScreenTranslatorService : Service() {
     // Default dispatcher is Main, suitable for launching UI-related or main-thread-bound tasks.
     private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
 
+<<<<<<< HEAD
+=======
     // @Volatile private var gemmaInitializationSignal = CompletableDeferred<Boolean>() // Removed
 
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
     companion object {
         // private const val MODEL_INIT_TIMEOUT_MS = 30000L // Removed, direct check of StateFlow.value
         const val CHANNEL_ID = "ScreenTranslatorChannel"
@@ -131,6 +191,24 @@ class ScreenTranslatorService : Service() {
         // var isProcessingEnabled = true // Removed: No longer controlling processing this way
     }
 
+<<<<<<< HEAD
+    private lateinit var modelManager: ModelManager
+    private lateinit var imageProcessor: ImageProcessor
+
+    override fun onCreate() {
+        super.onCreate()
+        Log.d(TAG, "ScreenTranslatorService onCreate. Service instance: $this")
+
+        notificationHelper = NotificationHelper(this)
+        notificationHelper.createNotificationChannel(ScreenTranslatorService.CHANNEL_ID) // Pass CHANNEL_ID here
+
+        mediaProjectionHelper = MediaProjectionHelper(this)
+        imageProcessingHelper = ImageProcessingHelper()
+        overlayHelper = OverlayHelper(this)
+
+        llmChatModelHelper = LlmChatModelHelper
+        overlayManager = OverlayManager(this) // Removed the extra 'channelId' argument
+=======
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "ScreenTranslatorService onCreate. Service instance: $this")
@@ -138,6 +216,7 @@ class ScreenTranslatorService : Service() {
         mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         llmChatModelHelper = LlmChatModelHelper
         overlayManager = OverlayManager(this)
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
         imageReaderHandler = Handler(Looper.getMainLooper())
 
         // Initialize SharedPreferences
@@ -148,10 +227,15 @@ class ScreenTranslatorService : Service() {
 
 
         val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+<<<<<<< HEAD
+        if (AndroidBuild.VERSION.SDK_INT >= AndroidBuild.VERSION_CODES.R) {
+            val metrics = windowManager.currentWindowMetrics
+=======
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val metrics = windowManager.currentWindowMetrics
             // val windowInsets = metrics.windowInsets // Not needed for raw screen size
             // val insets = windowInsets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars()) // Not needed for raw screen size
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
             screenWidth = metrics.bounds.width()
             screenHeight = metrics.bounds.height()
             screenDensity = resources.displayMetrics.densityDpi
@@ -168,6 +252,12 @@ class ScreenTranslatorService : Service() {
         // Initialize WindowManager here as it's definitely needed if we show the button
         this.windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         showFloatingButton()
+<<<<<<< HEAD
+
+        modelManager = ModelManager(this)
+        imageProcessor = ImageProcessor()
+=======
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
     }
 
     private fun prepareGemmaModel() {
@@ -196,7 +286,11 @@ class ScreenTranslatorService : Service() {
         if (currentModel != null) {
             Log.d(TAG, "prepareGemmaModel: Initializing or observing model: ${currentModel.name}")
             // Trigger initialization (it's idempotent in LlmChatModelHelper if already INITIALIZING or INITIALIZED)
+<<<<<<< HEAD
+            LlmChatModelHelper.initialize(applicationContext, currentModel, onDone)
+=======
             LlmChatModelHelper.initialize(applicationContext, currentModel)
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
 
             // Launch a coroutine to observe the model's state
             serviceScope.launch {
@@ -206,6 +300,17 @@ class ScreenTranslatorService : Service() {
                         when (state) {
                             is com.google.ai.edge.gallery.ui.llmchat.ModelState.INITIALIZED -> {
                                 Log.i(TAG, "Gemma model '${currentModel.name}' is INITIALIZED. Instance: ${currentModel.instance}")
+<<<<<<< HEAD
+                            }
+                            is com.google.ai.edge.gallery.ui.llmchat.ModelState.ERROR -> {
+                                Log.e(TAG, "Gemma model '${currentModel.name}' initialization ERROR: ${state.errorMessage}")
+                            }
+                            is com.google.ai.edge.gallery.ui.llmchat.ModelState.INITIALIZING -> {
+                                Log.i(TAG, "Gemma model '${currentModel.name}' is INITIALIZING.")
+                            }
+                            is com.google.ai.edge.gallery.ui.llmchat.ModelState.NOT_INITIALIZED -> {
+                                Log.i(TAG, "Gemma model '${currentModel.name}' is NOT_INITIALIZED.")
+=======
                                 // isGemmaModelInitialized = true; // Removed
                             }
                             is com.google.ai.edge.gallery.ui.llmchat.ModelState.ERROR -> {
@@ -220,6 +325,7 @@ class ScreenTranslatorService : Service() {
                             is com.google.ai.edge.gallery.ui.llmchat.ModelState.NOT_INITIALIZED -> {
                                 Log.i(TAG, "Gemma model '${currentModel.name}' is NOT_INITIALIZED.")
                                 // isGemmaModelInitialized = false; // Removed
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
                             }
                         }
                     } else {
@@ -237,6 +343,110 @@ class ScreenTranslatorService : Service() {
         }
     }
 
+<<<<<<< HEAD
+    // Update the onDone callback to match the expected type
+    private val onDone: (String) -> Unit = { result ->
+        if (result.isEmpty()) {
+            Log.d(TAG, "Model initialization completed successfully.")
+        } else {
+            Log.e(TAG, "Model initialization failed with error: $result")
+        }
+    }
+
+    private suspend fun initializeModelAsync(model: Model): Boolean {
+        return try {
+            LlmChatModelHelper.initialize(applicationContext, model) { result ->
+                if (result.isEmpty()) {
+                    Log.d(TAG, "Model ${model.name} initialized successfully.")
+                } else {
+                    Log.e(TAG, "Model ${model.name} initialization failed: $result")
+                }
+            }
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error initializing model ${model.name}", e)
+            false
+        }
+    }
+
+    private fun optimizeImageProcessing(reader: ImageReader) {
+        reader.setOnImageAvailableListener({ reader ->
+            // Só processa se uma captura foi solicitada
+            if (!captureRequested.get()) {
+                // Descarta a imagem se não foi solicitada
+                reader.acquireLatestImage()?.close()
+                return@setOnImageAvailableListener
+            }
+
+            serviceScope.launch(Dispatchers.IO) {
+                if (isProcessingFrame.compareAndSet(false, true)) {
+                    var image: Image? = null
+                    var bitmap: Bitmap? = null
+                    
+                    try {
+                        image = reader.acquireLatestImage()
+                        image?.let { img ->
+                            // Usa a versão consolidada do ImageProcessingHelper
+                            bitmap = imageProcessingHelper.processImageToBitmap(img, screenWidth, screenHeight)
+                            bitmap?.let { bmp ->
+                                processImageForTranslation(bmp)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Erro ao processar imagem", e)
+                    } finally {
+                        // Garante limpeza de recursos
+                        image?.close()
+                        bitmap?.recycle()
+                        isProcessingFrame.set(false)
+                        captureRequested.set(false) // Reset após processamento
+                    }
+                } else {
+                    // Se já está processando, descarta a imagem atual
+                    reader.acquireLatestImage()?.close()
+                }
+            }
+        }, imageReaderHandler)
+    }
+
+    private fun processImageToBitmap(image: Image): Bitmap {
+        val planes = image.planes
+        val buffer = planes[0].buffer
+        val pixelStride = planes[0].pixelStride
+        val rowStride = planes[0].rowStride
+        val rowPadding = rowStride - pixelStride * screenWidth
+
+        val bitmapWidth = screenWidth + rowPadding / pixelStride
+        val tempBitmap = Bitmap.createBitmap(bitmapWidth, screenHeight, Bitmap.Config.ARGB_8888)
+        tempBitmap.copyPixelsFromBuffer(buffer)
+
+        return if (rowPadding > 0) {
+            Bitmap.createBitmap(tempBitmap, 0, 0, screenWidth, screenHeight).also {
+                tempBitmap.recycle()
+            }
+        } else {
+            tempBitmap
+        }
+    }
+
+    private fun initializeSelectedModel() {
+        selectedGemmaModel?.let { model ->
+            modelManager.initializeModelAsync(model) { success ->
+                if (success) {
+                    Log.d(TAG, "Model ${model.name} initialized successfully.")
+                } else {
+                    Log.e(TAG, "Failed to initialize model: ${model.name}")
+                }
+            }
+        }
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "onStartCommand called")
+
+        val notification = notificationHelper.createForegroundNotification(CHANNEL_ID)
+        startForeground(ONGOING_NOTIFICATION_ID, notification)
+=======
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand called")
 
@@ -263,6 +473,7 @@ class ScreenTranslatorService : Service() {
 
         startForeground(ONGOING_NOTIFICATION_ID, notification)
         Log.d(TAG, "startForeground called")
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
 
         // Handle specific actions first
         if (intent?.action == ACTION_CAPTURE_AND_TRANSLATE) {
@@ -341,6 +552,13 @@ class ScreenTranslatorService : Service() {
             Log.d(TAG, "Service started without MediaProjection data.")
         }
 
+<<<<<<< HEAD
+        serviceScope.launch {
+            initializeSelectedModel()
+        }
+
+=======
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
         // If the service is killed, it will be automatically restarted.
         return START_STICKY
     }
@@ -349,6 +567,60 @@ class ScreenTranslatorService : Service() {
         Log.d(TAG, "Setting up ImageReader and VirtualDisplay.")
         imageReader = ImageReader.newInstance(screenWidth, screenHeight, PixelFormat.RGBA_8888, 2)
         imageReader?.setOnImageAvailableListener({ reader ->
+<<<<<<< HEAD
+            serviceScope.launch(Dispatchers.IO) {
+                if (isProcessingFrame.compareAndSet(false, true)) {
+                    var image: Image? = null
+                    try {
+                        image = reader.acquireLatestImage()
+                        image?.let {
+                            val bitmap = processImageToBitmap(it)
+                            processImageForTranslation(bitmap)
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error processing image", e)
+                    } finally {
+                        image?.close()
+                        isProcessingFrame.set(false)
+                    }
+                }
+            }, imageReaderHandler)
+
+        // Create VirtualDisplay after setting the ImageReader listener
+        virtualDisplay = mediaProjection?.createVirtualDisplay(
+            "ScreenTranslatorVirtualDisplay",
+            screenWidth,
+            screenHeight,
+            screenDensity,
+            DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC, // Corrected type mismatch
+            imageReader?.surface,
+            null, // No callback for now
+            null // Handler can be null
+        )
+
+        Log.d(TAG, "VirtualDisplay created: $virtualDisplay")
+    }
+
+    private fun showFloatingButton() {
+        Log.d(TAG, "Initializing floating button.")
+        floatingButtonView = View(this).apply {
+            setBackgroundResource(R.drawable.ic_floating_button)
+            setOnTouchListener { _, event ->
+                if (event.action == MotionEvent.ACTION_DOWN) {
+                    triggerCaptureAndTranslate()
+                }
+                true
+            }
+        }
+
+        floatingButtonParams = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            if (AndroidBuild.VERSION.SDK_INT >= AndroidBuild.VERSION_CODES.O)
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            else
+                WindowManager.LayoutParams.TYPE_PHONE,
+=======
             if (isProcessingFrame.compareAndSet(false, true)) {
                 var image: Image? = null
                 try {
@@ -621,10 +893,111 @@ class ScreenTranslatorService : Service() {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
+<<<<<<< HEAD
+            x = 100
+            y = 100
+        }
+
+        windowManager?.addView(floatingButtonView, floatingButtonParams)
+    }
+
+    private fun triggerCaptureAndTranslate() {
+        Log.d(TAG, "Capture and translate triggered.")
+        captureRequested.set(true)
+    }
+
+    private val mediaProjectionCallback = object : MediaProjection.Callback() {
+        override fun onStop() {
+            Log.d(TAG, "MediaProjection stopped.")
+            virtualDisplay?.release()
+            virtualDisplay = null
+            imageReader?.close()
+            imageReader = null
+            stopSelf()
+        }
+    }
+
+    private fun processImageForTranslation(bitmap: Bitmap) {
+        Log.d(TAG, "Processando imagem para tradução")
+        
+        val inputImage = InputImage.fromBitmap(bitmap, 0)
+        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+
+        recognizer.process(inputImage)
+            .addOnSuccessListener { visionText ->
+                if (visionText.text.isNotBlank()) {
+                    Log.d(TAG, "Texto reconhecido: ${visionText.text}")
+                    
+                    // Processa cada bloco de texto
+                    visionText.textBlocks.forEach { block ->
+                        processTextBlock(block)
+                    }
+                } else {
+                    Log.d(TAG, "Nenhum texto encontrado na imagem")
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Falha no reconhecimento de texto", e)
+            }
+    }
+
+    private fun processTextBlock(block: Text.TextBlock) {
+        val originalText = block.text
+        val boundingBox = block.boundingBox ?: return
+        
+        // Verifica cache primeiro
+        val cachedTranslation = translationCache[originalText]
+        if (cachedTranslation != null) {
+            overlayHelper.updateOverlayText(block.hashCode().toString(), boundingBox, cachedTranslation)
+            return
+        }
+        
+        // Se não estiver no cache, traduz
+        translateText(originalText) { translation ->
+            if (translation.isNotBlank()) {
+                translationCache[originalText] = translation
+                overlayHelper.updateOverlayText(block.hashCode().toString(), boundingBox, translation)
+            }
+        }
+    }
+
+    private fun translateText(text: String, onTranslated: (String) -> Unit) {
+        selectedGemmaModel?.let { model ->
+            val modelState = LlmChatModelHelper.getModelStateFlow(model.name).value
+            
+            if (modelState is com.google.ai.edge.gallery.ui.llmchat.ModelState.INITIALIZED) {
+                serviceScope.launch(Dispatchers.IO) {
+                    try {
+                        val prompt = "Traduza o seguinte texto para $currentTargetLanguage, mantenha apenas a tradução: \"$text\""
+                        
+                        // Aqui você precisaria implementar a chamada real para o modelo
+                        // Por exemplo: val translation = model.instance?.generateText(prompt)
+                        // Por enquanto, usando um placeholder
+                        val translation = "Tradução de: $text" // Placeholder
+                        
+                        serviceScope.launch(Dispatchers.Main) {
+                            onTranslated(translation)
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Erro na tradução", e)
+                        serviceScope.launch(Dispatchers.Main) {
+                            onTranslated("")
+                        }
+                    }
+                }
+            } else {
+                Log.w(TAG, "Modelo não está inicializado para tradução")
+                onTranslated("")
+            }
+        } ?: run {
+            Log.w(TAG, "Nenhum modelo selecionado para tradução")
+            onTranslated("")
+=======
             x = 0
             y = 100 // Initial Y position
         }
@@ -700,6 +1073,7 @@ class ScreenTranslatorService : Service() {
             } finally {
                 floatingButtonView = null // Ensure it's nulled out even if removeView fails
             }
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
         }
     }
 }
