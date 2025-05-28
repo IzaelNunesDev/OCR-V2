@@ -60,7 +60,11 @@ object LlmChatModelHelper {
   }
 
   fun initialize(
+<<<<<<< HEAD
     context: Context, model: Model, onDone: (error: String) -> Unit
+=======
+    context: Context, model: Model
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
   ) {
     val modelStateFlow = modelStates.getOrPut(model.name) {
       MutableStateFlow(ModelState.NOT_INITIALIZED)

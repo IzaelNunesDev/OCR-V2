@@ -53,11 +53,23 @@ import com.google.ai.edge.gallery.data.AppBarAction
 import com.google.ai.edge.gallery.data.AppBarActionType
 import com.google.ai.edge.gallery.ui.navigation.GalleryNavHost
 
+<<<<<<< HEAD
+=======
+/**
+ * Top level composable representing the main screen of the application.
+ */
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
 @Composable
 fun GalleryApp(navController: NavHostController = rememberNavController()) {
   GalleryNavHost(navController = navController)
 }
 
+<<<<<<< HEAD
+=======
+/**
+ * The top app bar.
+ */
+>>>>>>> f5fcdd17e36e2ee6297df131d2e26adea94e3c59
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GalleryTopAppBar(
