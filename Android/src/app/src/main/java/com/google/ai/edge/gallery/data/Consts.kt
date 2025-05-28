@@ -34,3 +34,7 @@ const val KEY_MODEL_EXTRA_DATA_DOWNLOAD_FILE_NAMES = "KEY_MODEL_EXTRA_DATA_DOWNL
 const val KEY_MODEL_IS_ZIP = "KEY_MODEL_IS_ZIP"
 const val KEY_MODEL_UNZIPPED_DIR = "KEY_MODEL_UNZIPPED_DIR"
 const val KEY_MODEL_START_UNZIPPING = "KEY_MODEL_START_UNZIPPING"
+
+// Preference Keys for Screen Translator
+const val PREF_TARGET_LANGUAGE = "target_translation_language"
+const val DEFAULT_TARGET_LANGUAGE = "Portuguese"

@@ -52,10 +52,14 @@ import com.google.mlkit.vision.text.Text // Added for Text.TextBlock parameter
 import android.graphics.Bitmap
 import com.google.ai.edge.gallery.data.Model
 import com.google.ai.edge.gallery.ui.llmchat.LlmChatModelHelper // Ensure this is present
-import com.google.ai.edge.gallery.ui.llmchat.LlmInference // Added for LlmChatModelHelper callback
+// import com.google.ai.edge.gallery.ui.llmchat.LlmInference // Not directly used from here anymore
+import com.google.ai.edge.gallery.ui.llmchat.ModelState // Import for explicit type usage
 import com.google.ai.edge.gallery.utils.OverlayManager
 import android.graphics.Rect // Added for OverlayManager
 import android.os.Handler
+import com.google.ai.edge.gallery.data.PREF_TARGET_LANGUAGE
+import com.google.ai.edge.gallery.data.DEFAULT_TARGET_LANGUAGE
+import android.content.SharedPreferences
 // android.os.Looper is already imported earlier
 // kotlinx.coroutines.CoroutineScope (already imported)
 // kotlinx.coroutines.Dispatchers (already imported)
@@ -86,12 +90,14 @@ class ScreenTranslatorService : Service() {
 
     private var llmChatModelHelper: LlmChatModelHelper? = null // Retaining this as it might be used elsewhere, though not for init directly
     private var selectedGemmaModel: Model? = null
-    @Volatile private var isGemmaModelInitialized = false // Mark as Volatile as it's accessed from different threads
+    // @Volatile private var isGemmaModelInitialized = false // Removed
     private var overlayManager: OverlayManager? = null
     private lateinit var imageReaderHandler: Handler
     private val isProcessingFrame = AtomicBoolean(false)
     private val captureRequested = AtomicBoolean(false)
     private val translationCache = mutableMapOf<String, String>() // Added translation cache
+    private lateinit var sharedPreferences: SharedPreferences
+    internal var currentTargetLanguage: String = DEFAULT_TARGET_LANGUAGE // Made internal for testing
 
     // Coroutine scope for the service, tied to its lifecycle.
     // Use SupervisorJob so if one child coroutine fails, others are not affected.
@@ -99,10 +105,10 @@ class ScreenTranslatorService : Service() {
     // Default dispatcher is Main, suitable for launching UI-related or main-thread-bound tasks.
     private val serviceScope = CoroutineScope(Dispatchers.Main + serviceJob)
 
-    @Volatile private var gemmaInitializationSignal = CompletableDeferred<Boolean>()
+    // @Volatile private var gemmaInitializationSignal = CompletableDeferred<Boolean>() // Removed
 
     companion object {
-        private const val MODEL_INIT_TIMEOUT_MS = 30000L // 30 seconds
+        // private const val MODEL_INIT_TIMEOUT_MS = 30000L // Removed, direct check of StateFlow.value
         const val CHANNEL_ID = "ScreenTranslatorChannel"
         const val ONGOING_NOTIFICATION_ID = 1001 // Example ID
         private const val TAG = "ScreenTranslatorService" // For logging
@@ -133,6 +139,13 @@ class ScreenTranslatorService : Service() {
         llmChatModelHelper = LlmChatModelHelper
         overlayManager = OverlayManager(this)
         imageReaderHandler = Handler(Looper.getMainLooper())
+
+        // Initialize SharedPreferences
+        sharedPreferences = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+        // Load the target language
+        currentTargetLanguage = sharedPreferences.getString(PREF_TARGET_LANGUAGE, DEFAULT_TARGET_LANGUAGE) ?: DEFAULT_TARGET_LANGUAGE
+        Log.i(TAG, "Loaded target language: $currentTargetLanguage")
+
 
         val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -165,11 +178,11 @@ class ScreenTranslatorService : Service() {
         if (selectedGemmaModel == null) {
             Log.d(TAG, "No model passed via intent, creating hardcoded placeholder selectedGemmaModel.")
             selectedGemmaModel = Model(
-                name = "Gemma-3n-E2B-it-int4", 
+                name = "Gemma-3n-E2B-it-int4",
                 url = "google/gemma-3n-E2B-it-litert-preview",
                 downloadFileName = "gemma-3n-E2B-it-int4.task",
                 info = "Placeholder Gemma model for ScreenTranslatorService (fallback)",
-                sizeInBytes = 0L, 
+                sizeInBytes = 0L,
                 version = "internal",
                 llmSupportImage = false // Default for placeholder
             )
@@ -179,48 +192,48 @@ class ScreenTranslatorService : Service() {
             Log.d(TAG, "Using selectedGemmaModel provided: ${selectedGemmaModel?.name}")
         }
 
-        Log.d(TAG, "prepareGemmaModel: Called. selectedGemmaModel Name: ${selectedGemmaModel?.name}, isGemmaModelInitialized: $isGemmaModelInitialized")
-        if (selectedGemmaModel != null && !isGemmaModelInitialized) {
-            Log.d(TAG, "Starting Gemma model initialization: ${selectedGemmaModel!!.name}")
-            gemmaInitializationSignal = CompletableDeferred() // Reset signal for this attempt
-            val modelToInitialize = selectedGemmaModel!! // Capture the model for this specific initialization attempt
-            // Launch initialization on a background thread (Dispatchers.IO)
-            serviceScope.launch(Dispatchers.IO) {
-                LlmChatModelHelper.initialize(applicationContext, modelToInitialize) { errorMessage ->
-                    Log.d(TAG, "LlmChatModelHelper.initialize callback for ${modelToInitialize.name}. Error: $errorMessage")
-                    // Check if the model we just spent time initializing is STILL the active one for the service.
-                    if (selectedGemmaModel == modelToInitialize) {
-                        if (errorMessage.isEmpty()) {
-                            // Initialization successful, modelToInitialize.instance should now be populated by LlmChatModelHelper
-                            Log.d(TAG, "Gemma model initialized successfully: ${modelToInitialize.name}. Instance: ${modelToInitialize.instance}")
-                            isGemmaModelInitialized = true // Set global flag as this is the active model
-                            gemmaInitializationSignal.complete(true) // Complete the signal for this model
-                            // selectedGemmaModel?.instance is already set by LlmChatModelHelper if successful
-                        } else {
-                            Log.e(TAG, "Failed to initialize Gemma model: ${modelToInitialize.name}, Error: $errorMessage")
-                            isGemmaModelInitialized = false
-                            modelToInitialize.instance = null // Ensure instance is null on failure
-                            if (gemmaInitializationSignal.isActive) gemmaInitializationSignal.complete(false)
+        val currentModel = selectedGemmaModel
+        if (currentModel != null) {
+            Log.d(TAG, "prepareGemmaModel: Initializing or observing model: ${currentModel.name}")
+            // Trigger initialization (it's idempotent in LlmChatModelHelper if already INITIALIZING or INITIALIZED)
+            LlmChatModelHelper.initialize(applicationContext, currentModel)
+
+            // Launch a coroutine to observe the model's state
+            serviceScope.launch {
+                LlmChatModelHelper.getModelStateFlow(currentModel.name).collect { state ->
+                    // Only log if this is still the selected model to avoid spam from old model flows
+                    if (selectedGemmaModel == currentModel) {
+                        when (state) {
+                            is com.google.ai.edge.gallery.ui.llmchat.ModelState.INITIALIZED -> {
+                                Log.i(TAG, "Gemma model '${currentModel.name}' is INITIALIZED. Instance: ${currentModel.instance}")
+                                // isGemmaModelInitialized = true; // Removed
+                            }
+                            is com.google.ai.edge.gallery.ui.llmchat.ModelState.ERROR -> {
+                                Log.e(TAG, "Gemma model '${currentModel.name}' initialization ERROR: ${state.errorMessage}")
+                                // isGemmaModelInitialized = false; // Removed
+                                // currentModel.instance = null; // LlmChatModelHelper handles this
+                            }
+                            is com.google.ai.edge.gallery.ui.llmchat.ModelState.INITIALIZING -> {
+                                Log.i(TAG, "Gemma model '${currentModel.name}' is INITIALIZING.")
+                                // isGemmaModelInitialized = false; // Removed
+                            }
+                            is com.google.ai.edge.gallery.ui.llmchat.ModelState.NOT_INITIALIZED -> {
+                                Log.i(TAG, "Gemma model '${currentModel.name}' is NOT_INITIALIZED.")
+                                // isGemmaModelInitialized = false; // Removed
+                            }
                         }
-                    } else { // This initialization is for a STALE model
-                        Log.w(TAG, "Initialization of STALE model ${modelToInitialize.name} (callback error: $errorMessage) complete, but active model is now ${selectedGemmaModel?.name ?: "null"}.")
-                        if (errorMessage.isEmpty() && modelToInitialize.instance != null) {
-                            // This stale model was successfully initialized by LlmChatModelHelper,
-                            // but the service has moved on. We must clean up its instance.
-                            Log.d(TAG, "Cleaning up LlmInference instance of stale model: ${modelToInitialize.name}")
-                            LlmChatModelHelper.cleanUp(modelToInitialize) // modelToInitialize still holds the instance here
-                        }
-                        // Complete the gemmaInitializationSignal associated with THIS initialization attempt (for modelToInitialize) as false,
-                        // because modelToInitialize is not the active model.
-                        if (gemmaInitializationSignal.isActive) { 
-                            gemmaInitializationSignal.complete(false)
-                        }
+                    } else {
+                        Log.d(TAG, "Received state update for a non-selected model ('${currentModel.name}'), ignoring. Current is '${selectedGemmaModel?.name}'.")
+                        // Optionally, ensure this collector cancels if the model it's observing is no longer selected.
+                        // However, `collect` will run indefinitely. A better approach might be to manage the Job of this collector
+                        // and cancel/restart it when `selectedGemmaModel` changes.
+                        // For now, the if condition provides some safety.
+                        this.cancel() // Cancel this specific collector coroutine if the model is no longer selected.
                     }
-                    // TODO: Notify user about initialization failure if necessary
                 }
             }
-        } else if (selectedGemmaModel == null) {
-            Log.d(TAG, "No model to initialize.")
+        } else {
+            Log.d(TAG, "No model to initialize or observe.")
         }
     }
 
@@ -403,16 +416,49 @@ class ScreenTranslatorService : Service() {
     }
 
     private fun processImageForTranslation(finalBitmapToProcess: Bitmap) { // originalImage is now closed by caller
-        val currentModelForJob = selectedGemmaModel // Capture the model at the start of this processing job
-        val currentSignalForJob = gemmaInitializationSignal // Capture its signal, which should correspond to currentModelForJob's init attempt
+        val currentModel = selectedGemmaModel
 
-        Log.d(TAG, "processImageForTranslation: Captured model: ${currentModelForJob?.name}, Captured signal: $currentSignalForJob")
-
-        if (currentModelForJob == null) {
-            Log.w(TAG, "No Gemma model selected at the start of processImageForTranslation. Skipping.")
+        if (currentModel == null) {
+            Log.w(TAG, "No Gemma model selected. Skipping translation.")
             if (!finalBitmapToProcess.isRecycled) finalBitmapToProcess.recycle()
-            isProcessingFrame.set(false) // Reset flag as we are aborting
+            isProcessingFrame.set(false)
             return
+        }
+
+        val modelState = LlmChatModelHelper.getModelStateFlow(currentModel.name).value
+        Log.d(TAG, "processImageForTranslation: Model '${currentModel.name}', State: $modelState, Instance: ${currentModel.instance}")
+
+        when (modelState) {
+            is com.google.ai.edge.gallery.ui.llmchat.ModelState.INITIALIZED -> {
+                if (currentModel.instance == null) {
+                    Log.e(TAG, "Model '${currentModel.name}' is INITIALIZED but instance is null. Skipping translation.")
+                    if (!finalBitmapToProcess.isRecycled) finalBitmapToProcess.recycle()
+                    isProcessingFrame.set(false)
+                    return
+                }
+                // Proceed with translation
+                Log.d(TAG, "Model '${currentModel.name}' is INITIALIZED and instance is valid. Proceeding with text recognition.")
+            }
+            is com.google.ai.edge.gallery.ui.llmchat.ModelState.INITIALIZING -> {
+                Log.i(TAG, "Model '${currentModel.name}' is INITIALIZING. Skipping translation for this frame.")
+                if (!finalBitmapToProcess.isRecycled) finalBitmapToProcess.recycle()
+                isProcessingFrame.set(false)
+                return
+            }
+            is com.google.ai.edge.gallery.ui.llmchat.ModelState.ERROR -> {
+                Log.e(TAG, "Model '${currentModel.name}' is in ERROR state: ${modelState.errorMessage}. Skipping translation.")
+                if (!finalBitmapToProcess.isRecycled) finalBitmapToProcess.recycle()
+                isProcessingFrame.set(false)
+                return
+            }
+            is com.google.ai.edge.gallery.ui.llmchat.ModelState.NOT_INITIALIZED -> {
+                Log.w(TAG, "Model '${currentModel.name}' is NOT_INITIALIZED. Skipping translation.")
+                // Optionally, trigger initialization again if it's stuck in this state unexpectedly
+                // LlmChatModelHelper.initialize(applicationContext, currentModel)
+                if (!finalBitmapToProcess.isRecycled) finalBitmapToProcess.recycle()
+                isProcessingFrame.set(false)
+                return
+            }
         }
 
         val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
@@ -421,91 +467,82 @@ class ScreenTranslatorService : Service() {
         recognizer.process(imageForMlKit)
             .addOnSuccessListener { visionText ->
                 Log.d(TAG, "ML Kit Text Recognition Success. Full text: ${visionText.text.substring(0, minOf(visionText.text.length, 100))}...")
-                
-                // Clear previous overlays first on the main thread
                 imageReaderHandler.post { overlayManager?.removeAllOverlays() }
 
-                serviceScope.launch(Dispatchers.IO) { // Explicitly move to background
+                serviceScope.launch(Dispatchers.IO) {
                     try {
-                        val modelReady = withTimeoutOrNull(MODEL_INIT_TIMEOUT_MS) {
-                            currentSignalForJob.await() // Await the signal of the model captured at the start of this job
+                        // Re-check model state and instance before heavy processing, in case it changed.
+                        val freshModelState = LlmChatModelHelper.getModelStateFlow(currentModel.name).value
+                        if (!(freshModelState is com.google.ai.edge.gallery.ui.llmchat.ModelState.INITIALIZED && currentModel.instance != null)) {
+                            Log.w(TAG, "Model '${currentModel.name}' state changed or instance became null before translation loop. State: $freshModelState. Skipping.")
+                            return@launch // Skip the rest of this coroutine
                         }
 
-                        if (modelReady != true || currentModelForJob.instance == null) {
-                            Log.w(TAG, "Gemma model '${currentModelForJob.name}' instance not ready after waiting. Skipping. modelReady: $modelReady, instanceNull: ${currentModelForJob.instance == null}")
-                        } else {
-                            Log.d(TAG, "Gemma model '${currentModelForJob.name}' is ready. Proceeding with translation for ${visionText.textBlocks.size} blocks.")
-                            for (block in visionText.textBlocks) {
-                                val textToTranslate = block.text
-                                val boundingBox = block.boundingBox ?: continue // Skip if no bounding box
-                                val blockId = стабильныйIdParaBloco(block) // Generate stable ID for the block
+                        Log.d(TAG, "Translating ${visionText.textBlocks.size} blocks with '${currentModel.name}'.")
+                        for (block in visionText.textBlocks) {
+                            val textToTranslate = block.text
+                            val boundingBox = block.boundingBox ?: continue
+                            val blockId = стабильныйIdParaBloco(block)
 
-                                if (currentModelForJob.instance == null) { // Re-check instance before each inference
-                                    Log.e(TAG, "CRITICAL: Instance of '${currentModelForJob.name}' became null before processing block '${textToTranslate.take(20)}...'. Skipping block.")
-                                    continue
+                            // Guard against instance becoming null mid-loop (e.g. due to model cleanup on another thread)
+                            if (currentModel.instance == null) {
+                                Log.e(TAG, "CRITICAL: Instance of '${currentModel.name}' became null before processing block '${textToTranslate.take(20)}...'. Skipping block.")
+                                continue
+                            }
+
+                            val cachedTranslation = translationCache[textToTranslate]
+                            if (cachedTranslation != null) {
+                                Log.d(TAG, "Cache hit for '${textToTranslate.take(50)}...': '$cachedTranslation'")
+                                imageReaderHandler.post {
+                                    overlayManager?.addOverlay(blockId, boundingBox, cachedTranslation)
+                                }
+                            } else {
+                                Log.d(TAG, "Cache miss for '${textToTranslate.take(50)}...'. Translating...")
+                                imageReaderHandler.post {
+                                    overlayManager?.addOverlay(blockId, boundingBox, "Translating...")
                                 }
 
-                                val cachedTranslation = translationCache[textToTranslate]
-                                if (cachedTranslation != null) {
-                                    Log.d(TAG, "Cache hit for '${textToTranslate.take(50)}...': '$cachedTranslation'")
+                                val prompt = "Translate to ${this.currentTargetLanguage}: $textToTranslate"
+                                Log.d(TAG, "Using prompt: $prompt")
+                                try {
+                                    val fullTranslatedText = LlmChatModelHelper.runInferenceSuspending(
+                                        model = currentModel, // currentModel captured at the start of processImageForTranslation
+                                        input = prompt
+                                    )
+                                    Log.i(TAG, "Translation for '${textToTranslate.take(50)}...': '$fullTranslatedText'")
+                                    translationCache[textToTranslate] = fullTranslatedText
                                     imageReaderHandler.post {
-                                        overlayManager?.addOverlay(blockId, boundingBox, cachedTranslation)
+                                        overlayManager?.updateOverlayText(blockId, boundingBox, fullTranslatedText)
                                     }
-                                } else {
-                                    Log.d(TAG, "Cache miss for '${textToTranslate.take(50)}...'. Translating...")
-                                    // Add placeholder "Translating..." overlay
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Error during runInferenceSuspending for '${textToTranslate.take(50)}...': ${e.message}", e)
                                     imageReaderHandler.post {
-                                        overlayManager?.addOverlay(blockId, boundingBox, "Translating...")
-                                    }
-
-                                    val prompt = "Translate to Portuguese: $textToTranslate"
-                                    try {
-                                        val fullTranslatedText = LlmChatModelHelper.runInferenceSuspending(
-                                            model = currentModelForJob,
-                                            input = prompt
-                                            // No image needed here as we are translating text from OCR
-                                        )
-                                        Log.i(TAG, "Translation for '${textToTranslate.take(50)}...': '$fullTranslatedText'")
-                                        translationCache[textToTranslate] = fullTranslatedText
-                                        imageReaderHandler.post {
-                                            overlayManager?.updateOverlayText(blockId, boundingBox, fullTranslatedText)
-                                        }
-                                    } catch (e: Exception) {
-                                        Log.e(TAG, "Error during runInferenceSuspending for '${textToTranslate.take(50)}...': ${e.message}", e)
-                                        // Optionally, update overlay to show error for this block
-                                        imageReaderHandler.post {
-                                            overlayManager?.updateOverlayText(blockId, boundingBox, "Error")
-                                        }
+                                        overlayManager?.updateOverlayText(blockId, boundingBox, "Error")
                                     }
                                 }
                             }
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "Error during translation processing in coroutine", e)
-                        // Ensure isProcessingFrame is reset even if an error occurs within the coroutine
-                        // The finally block below will handle this.
                     } finally {
-                        // This finally block is for the serviceScope.launch(Dispatchers.IO)
-                    // Ensure finalBitmapToProcess is recycled and isProcessingFrame is reset
-                    // This will run after the translation logic or if an exception occurs within the coroutine
-                    if (!finalBitmapToProcess.isRecycled) {
-                        finalBitmapToProcess.recycle()
-                        Log.d(TAG, "Recycled finalBitmapToProcess in coroutine finally block.")
+                        if (!finalBitmapToProcess.isRecycled) {
+                            finalBitmapToProcess.recycle()
+                            Log.d(TAG, "Recycled finalBitmapToProcess in translation coroutine finally block.")
+                        }
+                        isProcessingFrame.set(false)
+                        Log.d(TAG, "Translation coroutine finished. isProcessingFrame reset to false.")
                     }
-                    isProcessingFrame.set(false)
-                    Log.d(TAG, "Translation coroutine finished. isProcessingFrame reset to false.")
                 }
             }
-        }
-        .addOnFailureListener { e ->
-            Log.e(TAG, "ML Kit Text Recognition Failed.", e)
-            if (!finalBitmapToProcess.isRecycled) {
-                finalBitmapToProcess.recycle()
-                Log.d(TAG, "Recycled finalBitmapToProcess in ML Kit failure listener.")
+            .addOnFailureListener { e ->
+                Log.e(TAG, "ML Kit Text Recognition Failed.", e)
+                if (!finalBitmapToProcess.isRecycled) {
+                    finalBitmapToProcess.recycle()
+                    Log.d(TAG, "Recycled finalBitmapToProcess in ML Kit failure listener.")
+                }
+                isProcessingFrame.set(false)
+                Log.d(TAG, "ML Kit failure. isProcessingFrame reset to false.")
             }
-            isProcessingFrame.set(false) // Reset flag on ML Kit failure
-            Log.d(TAG, "ML Kit failure. isProcessingFrame reset to false.")
-        }
     } // End of processImageForTranslation
 
     private fun стабильныйIdParaBloco(block: Text.TextBlock): String {
@@ -527,11 +564,10 @@ class ScreenTranslatorService : Service() {
         overlayManager?.removeAllOverlays()
 
         selectedGemmaModel?.let {
-            if (it.instance != null) {
-                Log.d(TAG, "Cleaning up Gemma model instance for: ${it.name}")
-                LlmChatModelHelper.cleanUp(it)
-            }
-            isGemmaModelInitialized = false
+            // LlmChatModelHelper.cleanUp will set the state to NOT_INITIALIZED
+            Log.d(TAG, "Cleaning up Gemma model instance (if any) for: ${it.name}")
+            LlmChatModelHelper.cleanUp(it)
+            // isGemmaModelInitialized = false; // Removed
         }
         serviceJob.cancel() // Cancel all coroutines started by this scope
         Log.d(TAG, "ScreenTranslatorService onDestroy. All resources released and coroutines cancelled.")
